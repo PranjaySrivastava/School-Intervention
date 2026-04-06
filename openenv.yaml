@@ -1,0 +1,40 @@
+name: school-intervention-env
+version: "1.0.0"
+description: >
+  RL environment simulating AI-driven student intervention decisions.
+  Agent observes student metrics and chooses interventions to improve outcomes.
+
+actions:
+  type: string
+  enum:
+    - assign_tutor
+    - schedule_counseling
+    - notify_parents
+    - peer_study_group
+    - no_action
+
+observations:
+  type: object
+  properties:
+    student_id: {type: integer}
+    attendance: {type: float, minimum: 0.0, maximum: 1.0}
+    performance: {type: float, minimum: 0.0, maximum: 1.0}
+    stress_level: {type: float, minimum: 0.0, maximum: 1.0}
+    risk_score: {type: float, minimum: 0.0, maximum: 1.0}
+    week: {type: integer, minimum: 1, maximum: 21}
+
+tasks:
+  - name: easy
+    description: "Raise attendance above 0.75"
+  - name: medium
+    description: "Performance above 0.70 AND stress below 0.45"
+  - name: hard
+    description: "Risk below 0.30, attendance above 0.70, performance above 0.65"
+
+episode:
+  max_steps: 20
+
+runtime:
+  max_inference_minutes: 20
+  min_memory_gb: 8
+  min_vcpu: 2
