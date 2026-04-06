@@ -1,3 +1,13 @@
+---
+title: School Intervention Environment
+emoji: 🎓
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_file: api/main.py
+pinned: false
+---
+
 # School AI Intervention Environment
 
 An OpenEnv-compliant RL environment for AI-driven student intervention decisions.
