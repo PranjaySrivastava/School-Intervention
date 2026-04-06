@@ -6,7 +6,9 @@ from openai import OpenAI
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:7860")
 MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Llama-3.1-8B-Instruct")
-HF_TOKEN = os.getenv("HF_TOKEN", "")
+HF_TOKEN = os.getenv("HF_TOKEN")
+# Optional when using a local Docker image route.
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 
 ACTIONS = ["assign_tutor", "schedule_counseling", "notify_parents", "peer_study_group", "no_action"]
 
@@ -121,23 +123,43 @@ def run_episode(task: str) -> dict:
     global _last_actions
     _last_actions = []
 
-    print(f"\n{'='*50}\n  TASK: {task.upper()}\n{'='*50}")
     state = env_reset()
-    print(f"  Start: att={state['attendance']:.2f} perf={state['performance']:.2f} stress={state['stress_level']:.2f} risk={state['risk_score']:.2f}")
+    print(
+        "START "
+        f"task={task} "
+        f"week={state['week']} "
+        f"attendance={state['attendance']:.3f} "
+        f"performance={state['performance']:.3f} "
+        f"stress={state['stress_level']:.3f} "
+        f"risk={state['risk_score']:.3f}"
+    )
     total_reward = 0.0
 
     for step_num in range(1, 21):
         action = choose_action(state, task, step_num)
         state, reward, done, info = env_step(action)
         total_reward += reward
-        print(f"  Step {step_num:2d} | {action:<22} | reward={reward:+.3f} | risk={state['risk_score']:.2f}")
+        print(
+            "STEP "
+            f"task={task} "
+            f"step={step_num} "
+            f"action={action} "
+            f"reward={reward:.4f} "
+            f"done={str(done).lower()} "
+            f"week={state['week']} "
+            f"risk={state['risk_score']:.3f}"
+        )
         if done:
-            print(f"  Episode finished early at step {step_num}")
             break
 
     result = env_grade(task)
-    print(f"  Score: {result['score']:.4f}  Passed: {result['passed']}")
-    print(f"  Breakdown: {result['breakdown']}")
+    print(
+        "END "
+        f"task={task} "
+        f"score={result['score']:.4f} "
+        f"passed={str(result['passed']).lower()} "
+        f"total_reward={total_reward:.4f}"
+    )
     return {
         "task": task,
         "score": result["score"],
@@ -148,28 +170,30 @@ def run_episode(task: str) -> dict:
 
 
 def main():
-    print(f"\nSCHOOL AI INTERVENTION — BASELINE INFERENCE")
-    print(f"API: {API_BASE_URL}  |  Model: {MODEL_NAME}")
+    print(f"START run=all_tasks api={API_BASE_URL} model={MODEL_NAME}")
 
     try:
         r = requests.get(f"{API_BASE_URL}/health", timeout=10)
         r.raise_for_status()
-        print(f"Server: {r.json()['status']}")
+        print(f"STEP health_status={r.json()['status']}")
     except Exception as e:
-        print(f"[ERROR] Cannot reach server: {e}")
+        print(f"END status=error reason=server_unreachable detail={e}")
         return
 
     start = time.time()
     results = [run_episode(t) for t in ["easy", "medium", "hard"]]
     elapsed = time.time() - start
 
-    print(f"\n{'='*50}\n  FINAL SCORES\n{'='*50}")
     for r in results:
-        status = "PASS" if r["passed"] else "FAIL"
-        print(f"  {r['task']:<8} score={r['score']:.4f}  [{status}]  reward={r['total_reward']:.3f}")
+        print(
+            "STEP "
+            f"task={r['task']} "
+            f"score={r['score']:.4f} "
+            f"passed={str(r['passed']).lower()} "
+            f"reward={r['total_reward']:.4f}"
+        )
     avg = sum(r["score"] for r in results) / 3
-    print(f"  {'average':<8} score={avg:.4f}")
-    print(f"\n  Runtime: {elapsed:.1f}s")
+    print(f"END run=all_tasks average_score={avg:.4f} runtime_seconds={elapsed:.1f}")
 
     with open("inference_results.json", "w") as f:
         json.dump({
@@ -179,7 +203,7 @@ def main():
             "model": MODEL_NAME,
             "api": API_BASE_URL,
         }, f, indent=2)
-    print("  Saved: inference_results.json")
+    print("END status=results_saved file=inference_results.json")
 
 
 if __name__ == "__main__":
