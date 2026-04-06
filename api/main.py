@@ -94,3 +94,8 @@ def env_info():
 @app.get("/health")
 def health():
     return {"status": "ok", "environment": "school-intervention-env"}
+
+
+@app.get("/logs-container")
+def logs_container():
+    return {"logs": "Application running normally"}
