@@ -1,0 +1,8 @@
+from api.main import app
+
+
+def main() -> None:
+    # Entry point required by OpenEnv multi-mode validation.
+    import uvicorn
+
+    uvicorn.run("api.main:app", host="0.0.0.0", port=7860)
