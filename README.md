@@ -335,6 +335,20 @@ uvicorn api.main:app --host 0.0.0.0 --port 7860
 
 Then open `http://localhost:7860/docs` to explore and test via interactive API docs.
 
+## Testing
+
+Run the automated test suite locally:
+
+```bash
+python -m pip install pytest
+python -m pytest -q tests
+```
+
+Current suite covers:
+- API contract checks (`/health`, `/reset`, `/step`, `/grade`, `/info`)
+- Environment behavior (reset validity, invalid action handling, episode termination)
+- Deterministic grader logic for easy/medium/hard tasks
+
 ## Running Inference
 
 ### Fallback baseline (no LLM, deterministic)
@@ -413,6 +427,10 @@ school-intervention-env/
 │   ├── graders.py        # Deterministic task graders
 │   ├── models.py         # Pydantic schemas
 │   └── tasks.py          # Task definitions
+├── tests/
+│   ├── test_api.py       # FastAPI endpoint tests
+│   ├── test_environment.py # Environment behavior tests
+│   └── test_graders.py   # Task grading tests
 ├── Dockerfile            # Container configuration
 ├── requirements.txt      # Python dependencies
 ├── openenv.yaml          # Task config
