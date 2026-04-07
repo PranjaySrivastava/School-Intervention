@@ -31,6 +31,16 @@ def _log(tag: str, message: str) -> None:
     print(f"[{tag}] {message}", flush=True)
 
 
+def _strict_unit_interval(score: float) -> float:
+    # Phase validator requires strict bounds: 0 < score < 1.
+    eps = 1e-4
+    if score <= 0.0:
+        return eps
+    if score >= 1.0:
+        return 1.0 - eps
+    return score
+
+
 def _fallback(state: dict, task: str) -> str:
     att = state["attendance"]
     perf = state["performance"]
@@ -169,16 +179,17 @@ def run_episode(task: str) -> dict:
             break
 
     result = env_grade(task)
+    strict_score = _strict_unit_interval(float(result["score"]))
     _log(
         "END",
         f"task={task} "
-        f"score={result['score']:.4f} "
+        f"score={strict_score:.4f} "
         f"passed={str(result['passed']).lower()} "
         f"total_reward={total_reward:.4f}",
     )
     return {
         "task": task,
-        "score": result["score"],
+        "score": round(strict_score, 4),
         "passed": result["passed"],
         "total_reward": round(total_reward, 4),
         "breakdown": result["breakdown"],
@@ -224,7 +235,7 @@ def main():
             f"passed={str(r['passed']).lower()} "
             f"reward={r['total_reward']:.4f}",
         )
-    avg = sum(r["score"] for r in results) / 3
+    avg = _strict_unit_interval(sum(r["score"] for r in results) / 3)
     _log("END", f"run=all_tasks average_score={avg:.4f} runtime_seconds={elapsed:.1f}")
 
     with open("inference_results.json", "w") as f:
