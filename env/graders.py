@@ -12,7 +12,7 @@ def grade_easy(state: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "score": score,
         "passed": attendance >= 0.75,
-        "breakdown": {"status": "attendance_check", "threshold": "0.75"},
+        "breakdown": {"method": "attendance_evaluation"},
     }
 
 
@@ -26,9 +26,7 @@ def grade_medium(state: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "score": score,
         "passed": bool(performance >= 0.70 and stress <= 0.45),
-        "breakdown": {
-            "status": f"perf_{('pass' if performance >= 0.70 else 'fail')}_stress_{('pass' if stress <= 0.45 else 'fail')}",
-        },
+        "breakdown": {"method": "performance_stress_evaluation"},
     }
 
 
@@ -47,7 +45,7 @@ def grade_hard(state: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "score": score,
         "passed": bool(risk <= 0.30 and attendance >= 0.70 and performance >= 0.65),
-        "breakdown": {"status": f"conditions_{conditions_met}_of_3"},
+        "breakdown": {"method": "multi_factor_risk_evaluation"},
     }
 
 GRADERS = {"easy": grade_easy, "medium": grade_medium, "hard": grade_hard}
