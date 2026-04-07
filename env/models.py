@@ -13,10 +13,10 @@ class Action(str, Enum):
 
 class Observation(BaseModel):
     student_id: int
-    attendance: float = Field(..., ge=0.0, le=1.0)
-    performance: float = Field(..., ge=0.0, le=1.0)
-    stress_level: float = Field(..., ge=0.0, le=1.0)
-    risk_score: float = Field(..., ge=0.0, le=1.0)
+    attendance: float
+    performance: float
+    stress_level: float
+    risk_score: float
     week: int
 
 
@@ -38,7 +38,7 @@ class ResetResponse(BaseModel):
 
 class GradeResponse(BaseModel):
     task: str
-    score: float = Field(..., ge=0.0, le=1.0)
+    score: float
     passed: bool
     breakdown: Dict[str, Any] = {}
 

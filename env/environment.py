@@ -58,24 +58,24 @@ class SchoolInterventionEnv:
         self._action_history.append(action)
 
         if action == "assign_tutor":
-            self._state["performance"] = min(1.0, self._state["performance"] + 0.08)
-            self._state["stress_level"] = min(1.0, self._state["stress_level"] + 0.03)
+            self._state["performance"] = min(0.99, self._state["performance"] + 0.08)
+            self._state["stress_level"] = min(0.99, self._state["stress_level"] + 0.03)
             reward += 0.15
 
         elif action == "schedule_counseling":
-            self._state["stress_level"] = max(0.0, self._state["stress_level"] - 0.18)
-            self._state["attendance"] = min(1.0, self._state["attendance"] + 0.04)
+            self._state["stress_level"] = max(0.01, self._state["stress_level"] - 0.18)
+            self._state["attendance"] = min(0.99, self._state["attendance"] + 0.04)
             reward += 0.20
 
         elif action == "notify_parents":
             engagement_boost = 0.12 * (1 - self._hidden["parent_engagement"])
-            self._hidden["parent_engagement"] = min(1.0, self._hidden["parent_engagement"] + 0.10)
-            self._state["attendance"] = min(1.0, self._state["attendance"] + 0.06 + engagement_boost * 0.3)
+            self._hidden["parent_engagement"] = min(0.99, self._hidden["parent_engagement"] + 0.10)
+            self._state["attendance"] = min(0.99, self._state["attendance"] + 0.06 + engagement_boost * 0.3)
             reward += 0.10
 
         elif action == "peer_study_group":
-            self._state["performance"] = min(1.0, self._state["performance"] + 0.05)
-            self._state["stress_level"] = max(0.0, self._state["stress_level"] - 0.06)
+            self._state["performance"] = min(0.99, self._state["performance"] + 0.05)
+            self._state["stress_level"] = max(0.01, self._state["stress_level"] - 0.06)
             reward += 0.12
 
         elif action == "no_action":
@@ -113,10 +113,10 @@ class SchoolInterventionEnv:
 
     def _apply_stochastic_drift(self):
         if random.random() < 0.20:
-            self._state["attendance"] = max(0.0, self._state["attendance"] - random.uniform(0.03, 0.08))
-            self._state["stress_level"] = min(1.0, self._state["stress_level"] + random.uniform(0.02, 0.06))
+            self._state["attendance"] = max(0.01, self._state["attendance"] - random.uniform(0.03, 0.08))
+            self._state["stress_level"] = min(0.99, self._state["stress_level"] + random.uniform(0.02, 0.06))
         if random.random() < 0.10:
-            self._state["performance"] = min(1.0, self._state["performance"] + random.uniform(0.02, 0.05))
+            self._state["performance"] = min(0.99, self._state["performance"] + random.uniform(0.02, 0.05))
 
     def _update_risk_score(self):
         raw_risk = (
@@ -131,7 +131,8 @@ class SchoolInterventionEnv:
 
     def _clamp(self):
         for key in ["attendance", "performance", "stress_level", "risk_score"]:
-            self._state[key] = round(max(0.0, min(1.0, self._state[key])), 3)
+            # Strictly within (0, 1) - never exactly 0.0 or 1.0
+            self._state[key] = round(max(0.01, min(0.99, self._state[key])), 3)
 
     def _check_done(self) -> bool:
         if self._step_count >= self.MAX_STEPS:
