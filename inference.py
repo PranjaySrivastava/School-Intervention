@@ -20,6 +20,11 @@ client = OpenAI(
 _last_actions = []
 
 
+def _log(tag: str, message: str) -> None:
+    # Validator expects exact [START]/[STEP]/[END] blocks on stdout.
+    print(f"[{tag}] {message}", flush=True)
+
+
 def _fallback(state: dict, task: str) -> str:
     att = state["attendance"]
     perf = state["performance"]
@@ -94,7 +99,7 @@ Reply with ONLY the action name, nothing else."""
         _last_actions.append(chosen)
         return chosen
     except Exception as e:
-        print(f"  [WARN] LLM failed: {e} — using fallback")
+        _log("STEP", f"warn=llm_failed detail={str(e).replace(' ', '_')} fallback=true")
         chosen = _fallback(state, task)
         _last_actions.append(chosen)
         return chosen
@@ -124,14 +129,14 @@ def run_episode(task: str) -> dict:
     _last_actions = []
 
     state = env_reset()
-    print(
-        "START "
+    _log(
+        "START",
         f"task={task} "
         f"week={state['week']} "
         f"attendance={state['attendance']:.3f} "
         f"performance={state['performance']:.3f} "
         f"stress={state['stress_level']:.3f} "
-        f"risk={state['risk_score']:.3f}"
+        f"risk={state['risk_score']:.3f}",
     )
     total_reward = 0.0
 
@@ -139,26 +144,26 @@ def run_episode(task: str) -> dict:
         action = choose_action(state, task, step_num)
         state, reward, done, info = env_step(action)
         total_reward += reward
-        print(
-            "STEP "
+        _log(
+            "STEP",
             f"task={task} "
             f"step={step_num} "
             f"action={action} "
             f"reward={reward:.4f} "
             f"done={str(done).lower()} "
             f"week={state['week']} "
-            f"risk={state['risk_score']:.3f}"
+            f"risk={state['risk_score']:.3f}",
         )
         if done:
             break
 
     result = env_grade(task)
-    print(
-        "END "
+    _log(
+        "END",
         f"task={task} "
         f"score={result['score']:.4f} "
         f"passed={str(result['passed']).lower()} "
-        f"total_reward={total_reward:.4f}"
+        f"total_reward={total_reward:.4f}",
     )
     return {
         "task": task,
@@ -170,14 +175,14 @@ def run_episode(task: str) -> dict:
 
 
 def main():
-    print(f"START run=all_tasks api={API_BASE_URL} model={MODEL_NAME}")
+    _log("START", f"run=all_tasks api={API_BASE_URL} model={MODEL_NAME}")
 
     try:
         r = requests.get(f"{API_BASE_URL}/health", timeout=10)
         r.raise_for_status()
-        print(f"STEP health_status={r.json()['status']}")
+        _log("STEP", f"health_status={r.json()['status']}")
     except Exception as e:
-        print(f"END status=error reason=server_unreachable detail={e}")
+        _log("END", f"status=error reason=server_unreachable detail={str(e).replace(' ', '_')}")
         return
 
     start = time.time()
@@ -185,15 +190,15 @@ def main():
     elapsed = time.time() - start
 
     for r in results:
-        print(
-            "STEP "
+        _log(
+            "STEP",
             f"task={r['task']} "
             f"score={r['score']:.4f} "
             f"passed={str(r['passed']).lower()} "
-            f"reward={r['total_reward']:.4f}"
+            f"reward={r['total_reward']:.4f}",
         )
     avg = sum(r["score"] for r in results) / 3
-    print(f"END run=all_tasks average_score={avg:.4f} runtime_seconds={elapsed:.1f}")
+    _log("END", f"run=all_tasks average_score={avg:.4f} runtime_seconds={elapsed:.1f}")
 
     with open("inference_results.json", "w") as f:
         json.dump({
@@ -203,7 +208,7 @@ def main():
             "model": MODEL_NAME,
             "api": API_BASE_URL,
         }, f, indent=2)
-    print("END status=results_saved file=inference_results.json")
+    _log("END", "status=results_saved file=inference_results.json")
 
 
 if __name__ == "__main__":
