@@ -33,8 +33,8 @@ def grade_medium(state: Dict[str, Any]) -> Dict[str, Any]:
         "breakdown": {
             "performance": round(performance, 3),
             "stress_level": round(stress, 3),
-            "performance_component": round(perf_score, 4),
-            "stress_component": round(stress_score, 4),
+            "performance_component_value": round(perf_score, 4),
+            "stress_component_value": round(stress_score, 4),
         },
     }
 
@@ -55,7 +55,7 @@ def grade_hard(state: Dict[str, Any]) -> Dict[str, Any]:
         "score": round(combined, 4),
         "passed": risk <= 0.30 and attendance >= 0.70 and performance >= 0.65,
         "breakdown": {
-            "risk_score": round(risk, 3),
+            "risk": round(risk, 3),
             "attendance": round(attendance, 3),
             "performance": round(performance, 3),
             "conditions_met": f"{conditions_met}/3",
