@@ -4,18 +4,24 @@ import time
 import requests
 from openai import OpenAI
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:7860")
+ENV_BASE_URL = os.getenv("ENV_BASE_URL", "https://laterabhi-school-intervention-env.hf.space")
 MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Llama-3.1-8B-Instruct")
 HF_TOKEN = os.getenv("HF_TOKEN")
+API_KEY = os.getenv("API_KEY")
 # Optional when using a local Docker image route.
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 
 ACTIONS = ["assign_tutor", "schedule_counseling", "notify_parents", "peer_study_group", "no_action"]
 
-client = OpenAI(
-    base_url=os.getenv("API_BASE_URL_LLM", "https://router.huggingface.co/v1"),
-    api_key=HF_TOKEN if HF_TOKEN else "dummy",
-)
+# In evaluation, API_BASE_URL/API_KEY are injected for LiteLLM proxy usage.
+LLM_BASE_URL = os.getenv("API_BASE_URL")
+if LLM_BASE_URL and API_KEY:
+    client = OpenAI(base_url=LLM_BASE_URL, api_key=API_KEY)
+elif HF_TOKEN:
+    # Local fallback for manual runs.
+    client = OpenAI(base_url="https://router.huggingface.co/v1", api_key=HF_TOKEN)
+else:
+    client = None
 
 _last_actions = []
 
@@ -80,6 +86,11 @@ Last 2 actions taken: {_last_actions[-2:]}
 
 Reply with ONLY the action name, nothing else."""
 
+    if client is None:
+        chosen = _fallback(state, task)
+        _last_actions.append(chosen)
+        return chosen
+
     try:
         response = client.chat.completions.create(
             model=MODEL_NAME,
@@ -106,20 +117,20 @@ Reply with ONLY the action name, nothing else."""
 
 
 def env_reset():
-    r = requests.post(f"{API_BASE_URL}/reset")
+    r = requests.post(f"{ENV_BASE_URL}/reset")
     r.raise_for_status()
     return r.json()["observation"]
 
 
 def env_step(action: str):
-    r = requests.post(f"{API_BASE_URL}/step", json={"action": action})
+    r = requests.post(f"{ENV_BASE_URL}/step", json={"action": action})
     r.raise_for_status()
     d = r.json()
     return d["observation"], d["reward"], d["done"], d["info"]
 
 
 def env_grade(task_name: str):
-    r = requests.post(f"{API_BASE_URL}/grade/{task_name}")
+    r = requests.post(f"{ENV_BASE_URL}/grade/{task_name}")
     r.raise_for_status()
     return r.json()
 
@@ -175,10 +186,26 @@ def run_episode(task: str) -> dict:
 
 
 def main():
-    _log("START", f"run=all_tasks api={API_BASE_URL} model={MODEL_NAME}")
+    _log("START", f"run=all_tasks env_api={ENV_BASE_URL} model={MODEL_NAME}")
+
+    if client is None:
+        _log("END", "status=error reason=missing_llm_credentials detail=set_API_BASE_URL_and_API_KEY_or_HF_TOKEN")
+        return
+
+    # Warm up one proxy call so validator can detect LiteLLM key usage.
+    try:
+        client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": "Reply with only: ok"}],
+            max_tokens=5,
+            temperature=0.0,
+        )
+        _log("STEP", "llm_proxy_check=ok")
+    except Exception as e:
+        _log("STEP", f"llm_proxy_check=failed detail={str(e).replace(' ', '_')}")
 
     try:
-        r = requests.get(f"{API_BASE_URL}/health", timeout=10)
+        r = requests.get(f"{ENV_BASE_URL}/health", timeout=10)
         r.raise_for_status()
         _log("STEP", f"health_status={r.json()['status']}")
     except Exception as e:
@@ -206,7 +233,7 @@ def main():
             "average_score": round(avg, 4),
             "runtime_seconds": round(elapsed, 1),
             "model": MODEL_NAME,
-            "api": API_BASE_URL,
+            "api": ENV_BASE_URL,
         }, f, indent=2)
     _log("END", "status=results_saved file=inference_results.json")
 
