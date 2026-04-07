@@ -70,9 +70,11 @@ def grade_state(task_name: str):
     if task_name not in ["easy", "medium", "hard"]:
         raise HTTPException(status_code=400, detail=f"Unknown task '{task_name}'")
     result = grade(task_name, env.state())
+    # Double-clamp: validator requires strictly (0, 1) — never 0.0 or 1.0
+    safe_score = round(min(0.98, max(0.02, float(result["score"]))), 4)
     return GradeResponse(
         task=result["task"],
-        score=result["score"],
+        score=safe_score,
         passed=result["passed"],
         breakdown=result["breakdown"],
     )

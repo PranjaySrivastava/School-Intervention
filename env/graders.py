@@ -1,59 +1,55 @@
 from typing import Dict, Any
 
 
-def _strict_open_unit_interval(score: float) -> float:
-    # Keep a safe margin so external rounding never reaches 0.0 or 1.0.
-    eps = 0.02
-    # Always keep scores inside (0, 1) even after later rounding.
-    return min(1.0 - eps, max(eps, score))
+def _clamp(score: float) -> float:
+    return round(min(0.98, max(0.02, float(score))), 4)
 
 
 def grade_easy(state: Dict[str, Any]) -> Dict[str, Any]:
-    attendance = state.get("attendance", 0.0)
-    score = (attendance - 0.30) / (0.75 - 0.30)
-    score = max(0.0, min(1.0, score))
-    score = _strict_open_unit_interval(score)
+    attendance = float(state.get("attendance", 0.0))
+    raw = (attendance - 0.30) / (0.75 - 0.30)
+    score = _clamp(raw)
     return {
-        "score": round(score, 4),
+        "score": score,
         "passed": attendance >= 0.75,
         "breakdown": {"attendance": round(attendance, 3), "target": 0.75},
     }
 
 
 def grade_medium(state: Dict[str, Any]) -> Dict[str, Any]:
-    performance = state.get("performance", 0.0)
-    stress = state.get("stress_level", 1.0)
+    performance = float(state.get("performance", 0.0))
+    stress = float(state.get("stress_level", 1.0))
     perf_score = max(0.0, min(1.0, (performance - 0.25) / (0.70 - 0.25)))
     stress_score = max(0.0, min(1.0, (0.90 - stress) / (0.90 - 0.45)))
     combined = (perf_score * stress_score) ** 0.5
-    combined = _strict_open_unit_interval(combined)
+    score = _clamp(combined)
     return {
-        "score": round(combined, 4),
-        "passed": performance >= 0.70 and stress <= 0.45,
+        "score": score,
+        "passed": bool(performance >= 0.70 and stress <= 0.45),
         "breakdown": {
             "performance": round(performance, 3),
             "stress_level": round(stress, 3),
-            "performance_component_value": round(perf_score, 4),
-            "stress_component_value": round(stress_score, 4),
+            "perf_component": round(perf_score, 4),
+            "stress_component": round(stress_score, 4),
         },
     }
 
 
 def grade_hard(state: Dict[str, Any]) -> Dict[str, Any]:
-    risk = state.get("risk_score", 1.0)
-    attendance = state.get("attendance", 0.0)
-    performance = state.get("performance", 0.0)
-    risk_score = max(0.0, min(1.0, (0.80 - risk) / (0.80 - 0.30)))
-    att_score = max(0.0, min(1.0, (attendance - 0.30) / (0.70 - 0.30)))
-    perf_score = max(0.0, min(1.0, (performance - 0.25) / (0.65 - 0.25)))
-    combined = 0.50 * risk_score + 0.25 * att_score + 0.25 * perf_score
+    risk = float(state.get("risk_score", 1.0))
+    attendance = float(state.get("attendance", 0.0))
+    performance = float(state.get("performance", 0.0))
+    risk_c = max(0.0, min(1.0, (0.80 - risk) / (0.80 - 0.30)))
+    att_c = max(0.0, min(1.0, (attendance - 0.30) / (0.70 - 0.30)))
+    perf_c = max(0.0, min(1.0, (performance - 0.25) / (0.65 - 0.25)))
+    combined = 0.50 * risk_c + 0.25 * att_c + 0.25 * perf_c
     conditions_met = sum([risk <= 0.30, attendance >= 0.70, performance >= 0.65])
     if conditions_met == 2 and combined > 0.6:
         combined *= 0.75
-    combined = _strict_open_unit_interval(combined)
+    score = _clamp(combined)
     return {
-        "score": round(combined, 4),
-        "passed": risk <= 0.30 and attendance >= 0.70 and performance >= 0.65,
+        "score": score,
+        "passed": bool(risk <= 0.30 and attendance >= 0.70 and performance >= 0.65),
         "breakdown": {
             "risk": round(risk, 3),
             "attendance": round(attendance, 3),
