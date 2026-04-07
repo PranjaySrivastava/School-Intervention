@@ -33,7 +33,7 @@ def _log(tag: str, message: str) -> None:
 
 def _strict_unit_interval(score: float) -> float:
     # Phase validator requires strict bounds: 0 < score < 1.
-    eps = 1e-4
+    eps = 0.02
     # Always keep score away from exact boundaries, even after formatting.
     return min(1.0 - eps, max(eps, score))
 

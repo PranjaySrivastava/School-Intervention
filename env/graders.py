@@ -2,7 +2,8 @@ from typing import Dict, Any
 
 
 def _strict_open_unit_interval(score: float) -> float:
-    eps = 1e-4
+    # Keep a safe margin so external rounding never reaches 0.0 or 1.0.
+    eps = 0.02
     # Always keep scores inside (0, 1) even after later rounding.
     return min(1.0 - eps, max(eps, score))
 
