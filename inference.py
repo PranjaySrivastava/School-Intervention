@@ -167,7 +167,6 @@ def run_episode(task: str) -> dict:
             f"task={task} "
             f"step={step_num} "
             f"action={action} "
-            f"reward={reward:.4f} "
             f"done={str(done).lower()} "
             f"week={state['week']} "
             f"risk={state['risk_score']:.3f}",
@@ -181,14 +180,12 @@ def run_episode(task: str) -> dict:
         "END",
         f"task={task} "
         f"score={strict_score:.4f} "
-        f"passed={str(result['passed']).lower()} "
-        f"total_reward={total_reward:.4f}",
+        f"passed={str(result['passed']).lower()}",
     )
     return {
         "task": task,
         "score": round(strict_score, 4),
         "passed": result["passed"],
-        "total_reward": round(total_reward, 4),
         "breakdown": result["breakdown"],
     }
 
@@ -224,14 +221,6 @@ def main():
     results = [run_episode(t) for t in ["easy", "medium", "hard"]]
     elapsed = time.time() - start
 
-    for r in results:
-        _log(
-            "STEP",
-            f"task={r['task']} "
-            f"score={r['score']:.4f} "
-            f"passed={str(r['passed']).lower()} "
-            f"reward={r['total_reward']:.4f}",
-        )
     avg = _strict_unit_interval(sum(r["score"] for r in results) / 3)
     _log("END", f"run=all_tasks average_score={avg:.4f} runtime_seconds={elapsed:.1f}")
 
