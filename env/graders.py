@@ -3,11 +3,8 @@ from typing import Dict, Any
 
 def _strict_open_unit_interval(score: float) -> float:
     eps = 1e-4
-    if score <= 0.0:
-        return eps
-    if score >= 1.0:
-        return 1.0 - eps
-    return score
+    # Always keep scores inside (0, 1) even after later rounding.
+    return min(1.0 - eps, max(eps, score))
 
 
 def grade_easy(state: Dict[str, Any]) -> Dict[str, Any]:
